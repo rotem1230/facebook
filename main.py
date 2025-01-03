@@ -7,6 +7,7 @@ from models import *
 from database import engine, SessionLocal
 from routers import auth, facebook, leads, templates
 import uvicorn
+from utils.logger import logger
 
 app = FastAPI(title="Facebook Leads Analysis System")
 
@@ -38,6 +39,16 @@ async def serve_frontend(full_path: str):
     if os.path.exists(file_path):
         return FileResponse(file_path)
     return FileResponse("frontend/build/index.html")
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    logger.log_system_error("HTTP", f"{exc.status_code}: {exc.detail}")
+    return {"detail": exc.detail}
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.log_system_error("General", str(exc))
+    return {"detail": "Internal server error"}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 10000)), reload=True)

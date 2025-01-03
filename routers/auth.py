@@ -7,6 +7,7 @@ import bcrypt
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+from utils.logger import logger
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -48,14 +49,20 @@ def register_user(email: str, password: str, db: Session = Depends(get_db)):
 
 @router.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not bcrypt.checkpw(form_data.password.encode('utf-8'), 
-                                    user.hashed_password.encode('utf-8')):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="שם משתמש או סיסמה שגויים",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    try:
+        user = db.query(User).filter(User.email == form_data.username).first()
+        if not user or not bcrypt.checkpw(form_data.password.encode('utf-8'), 
+                                        user.hashed_password.encode('utf-8')):
+            logger.log_auth_error(form_data.username, "Invalid username or password")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="שם משתמש או סיסמה שגויים",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        logger.log_user_action(form_data.username, "login_attempt")
+        access_token = create_access_token(data={"sub": user.email})
+        return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        logger.log_auth_error(form_data.username, str(e))
+        raise HTTPException(status_code=401, detail="Login failed")
