@@ -2,12 +2,17 @@ services:
   - type: web
     name: facebook-leads
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -c gunicorn.conf.py main:app
+    buildCommand: |
+      pip install -r requirements.txt
+      cd src
+    startCommand: |
+      cd src && gunicorn main:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PORT
         value: 10000
+      - key: PYTHONPATH
+        value: src
     healthCheckPath: /
     autoDeploy: true

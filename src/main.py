@@ -1,12 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
-from models import *
+
 from database import engine, SessionLocal
 from routers import auth, facebook, leads, templates
-import uvicorn
 from utils.logger import logger
 
 app = FastAPI(title="Facebook Leads Analysis System")
